@@ -27,11 +27,18 @@ def genetic_algorithm_cvrp(
     population = population[np.argsort(fitness_scores)]
     fitness_scores = fitness_scores[np.argsort(fitness_scores)]
     best_score = fitness_scores[0]
+    
+    plot_fitness = [0]
+    plot_generations = [0]
+    plot_time = [0]
 
     while time.time() - start_time < time_limit:
         if generation % 100 == 0:
             population, fitness_scores = calculate_fitness(population, volumes, max_volume, distances)
             current_best_score = np.min(fitness_scores)
+            plot_fitness.append(current_best_score)
+            plot_generations.append(generation)
+            plot_time.append(time.time() - start_time)
 
             if current_best_score == best_score:
                 best_score_stagnation_count += 1
@@ -52,7 +59,7 @@ def genetic_algorithm_cvrp(
     population = population[np.argsort(fitness_scores)]
     fitness_scores = fitness_scores[np.argsort(fitness_scores)]
     print(f'\nGeração final: {generation} com Fitness: {fitness_scores[0]}')
-    return population[0], fitness_scores[0], generation
+    return population[0], fitness_scores[0], plot_fitness, plot_generations, plot_time
 
 
 def draw_progress_bar(generation, best_score ,current_time, start_time, time_limit, length=30):

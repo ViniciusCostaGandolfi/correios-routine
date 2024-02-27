@@ -28,11 +28,13 @@ class RouteDto(BaseModel):
     
 class VrpInDto(BaseModel):
     id: Optional[int] = None
+    distribuitor: AddressDto
     orders: List[OrderDto]
     drivers_volume: float
     
 class VrpOutDto(BaseModel):
     id: Optional[int] = None
+    distribuitor: AddressDto
     routes: List[RouteDto]
     drivers_volume: float
     
@@ -45,10 +47,10 @@ class GraphStatsDto(BaseModel):
 class GeneticAlgorithmStatsDto(BaseModel):
     id: Optional[int] = None
     processor_type: str
-    final_generation: int
-    final_fitness: float
+    plot_fitness: List[float]
+    plot_generations: List[float]
+    plot_times: List[float]
     population_size: int
     mutation_rate: float
-    seconds_processed: float
     converge: bool
     graph_stats: GraphStatsDto

@@ -2,11 +2,9 @@ import sys
 import os
 
 
-# Adiciona o diretório atual ao sys.path
 sys.path.append(os.getcwd())
 
 import time
-
 import folium
 from sklearn.datasets import make_blobs
 from algorithms import genetic_algorithm_cvrp_v1
@@ -22,6 +20,7 @@ centers = [[-22.573213, -47.402682]] # Limeira
 cluster_std = [[0.01]]
 n_points = 100
 points, _ = make_blobs(n_samples=n_points, centers=centers, cluster_std=cluster_std, random_state=1)
+points[0] = centers[0]
 t_distances = time.time()
 distance_matrix, routes_matrix = calculate_distances_routes(graph_limeira, points, True)
 t_distances = time.time() - t_distances
@@ -37,18 +36,18 @@ grath_stats = GraphStatsDto(
     seconds_to_calculate=t_distances
 )
 t_solve = time.time()
-best_solution, best_fitness, n_generation = genetic_algorithm_cvrp_v1(points, volumes, distance_matrix, max_volume, mutation_rate=mutation_rate, time_limit=t_seconds, pop_size=pop_size)
+best_solution, best_fitness, plot_fitness, plot_generations, plot_times = genetic_algorithm_cvrp_v1(points, volumes, distance_matrix, max_volume, mutation_rate=mutation_rate, time_limit=t_seconds, pop_size=pop_size)
 t_solve = time.time() - t_solve
 
 
 ga_stats = GeneticAlgorithmStatsDto(
     processor_type='Intel Core i3 10 Geração',
-    final_generation=n_generation,
-    final_fitness=best_fitness,
+    plot_generations=plot_generations,
+    plot_fitness=plot_fitness,
+    plot_times = plot_times,
     population_size=pop_size,
     mutation_rate=mutation_rate,
     converge=t_solve <= t_seconds,
-    seconds_processed = t_solve,
     graph_stats=grath_stats
 )
 
@@ -60,6 +59,7 @@ routes = []
 route_volumes = []  
 current_route = [0]
 total_volume = 0
+
 for point in best_solution:
     if total_volume + volumes[point] > max_volume:
         if current_route != [0]:
@@ -88,8 +88,10 @@ colorlist = [mcolors.to_hex(color) for color in colors]
 # Adicionando pontos e rotas ao mapa
 orders_dtos = []
 orders_id = 1
+street_points = []
 for index, route in enumerate(routes):
     route_color = colorlist[index]
+    full_route = []
     
     for point_index in route:
         point = points[point_index]
@@ -117,7 +119,10 @@ for index, route in enumerate(routes):
         rota_pontos = routes_matrix[route[i]][route[i + 1]]
         # Inverter as coordenadas de long, lat para lat, long e adicionar o ponto final
         rota_latlng = [[coord[1], coord[0]] for coord in rota_pontos] + [[points[route[i + 1]][0], points[route[i + 1]][1]]]
+        full_route.extend(rota_latlng)
         folium.PolyLine(rota_latlng, color=route_color, weight=2.5, opacity=1).add_to(mapa)
+        
+    street_points.append([(coord[1], coord[0]) for coord in full_route])
 
 # Adicionar um marcador grande para o centro de distribuição
 folium.Marker(
@@ -132,30 +137,41 @@ folium.Marker(
 
 print(f"CVRP de {n_points} pontos em {t_solve:.3f}s")
 
-
+distribuitor_address = AddressDto(
+        formatted_address='Rua, numero, bairro, cidade, UF - CEP', 
+        street_name='Rua', 
+        street_number='Numero', 
+        city='Cidade', 
+        postal_code='CEP', 
+        neighborhood='Bairro', 
+        state='UF', 
+        complement='', 
+        latitude=points[0][0], 
+        longitude=points[1][1]
+        )
 vrp_in = VrpInDto(
+    distribuitor=distribuitor_address,
     orders=orders_dtos,  # Supondo que orders_dtos seja uma lista de todas as OrderDto antes da otimização
     drivers_volume=max_volume
 )
 
-# Criar as RouteDto para VrpOutDto
+
 route_dtos = []
-for i, route in enumerate(routes):
-    orders_in_route = [orders_dtos[j] for j in route]  # Supondo que orders_dtos inclua todas as OrderDto
-    street_route = []
-    for j in range(len(route) - 1):
-        street_route += routes_matrix[route[j]][route[j + 1]]
+for index, route in enumerate(routes):
+    orders_in_route = [orders_dtos[j] for j in route] 
+
     route_dtos.append(
         RouteDto(
-            id=i,
+            id=index,
             orders=orders_in_route,
-            street_route=street_route,
-            total_volume=route_volumes[i]
+            street_route=street_points[index],
+            total_volume=route_volumes[index]
         )
     )
 
 # Criar a instância VrpOutDto
 vrp_out = VrpOutDto(
+    distribuitor=distribuitor_address,
     routes=route_dtos,
     drivers_volume=max_volume
 )
@@ -175,6 +191,7 @@ with open(f'tests/data/v1/n_{n_points}_cvrp_out.json', 'w') as f:
 with open(f'tests/data/v1/n_{n_points}_ga_stats.json', 'w') as f:
     f.write(ga_stats_json)
     
-mapa.save(f'tests/data/v1/n_{n_points}_mapa_cvrp.html')
-    
+# mapa.save(f'tests/data/v1/n_{n_points}_mapa_cvrp.html')
+mapa.save(f'mapa_cvrp.html')
+
     
