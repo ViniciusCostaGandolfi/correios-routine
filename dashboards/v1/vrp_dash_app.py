@@ -1,27 +1,23 @@
 import sys
 import os
-
 sys.path.append(os.getcwd())
+
 
 import json
 import dash
-from dash import dcc, html
-from dash.dependencies import Input, Output
 import plotly.graph_objects as go
-from matplotlib import colormaps
-import matplotlib.colors as mcolors
 import numpy as np
-from dtos import VrpOutDto
-from dash import dcc, html
+import matplotlib.colors as mcolors
+from matplotlib import colormaps
+from dash import dcc, html, Input, Output, State
 import dash_bootstrap_components as dbc
-from dtos import GeneticAlgorithmStatsDto
+from dtos import VrpOutDto, GeneticAlgorithmStatsDto
 
 
-
-# Inicializar o app Dash
 app = dash.Dash(__name__, external_stylesheets=[dbc.themes.DARKLY])
 
-# Layout do app
+app.title = 'Dashboard Rotas'
+
 app.layout = dbc.Container(
     [
         dbc.Row(
@@ -31,7 +27,6 @@ app.layout = dbc.Container(
             )
         ),
 
-        # Descrição do Dashboard
         dbc.Row(
             dbc.Col(
                 html.P(
@@ -55,10 +50,10 @@ app.layout = dbc.Container(
                         value='n_30_cvrp_out.json',
                         style={'color': 'black'}
                     ),
-                    width=10  
+                    width=8  
                 ),
                 dbc.Col(
-                    dbc.Button("Mostrar GAStats", id="show-gastats-button", className="mb-3"),
+                    dbc.Button("GA Estatísticas", id="show-gastats-button", className="mb-3"),
                     width=2  # Ajuste a largura conforme necessário
                 ),
             ],
@@ -87,21 +82,25 @@ app.layout = dbc.Container(
 
 
 @app.callback(
-    [Output("collapse-gastats", "is_open"),
-     Output("gastats-content", "children")],  # Outputs primeiro
-    [Input("show-gastats-button", "n_clicks"),  # Inputs depois
-     Input('vrp-selector', 'value')],
-    [dash.dependencies.State("collapse-gastats", "is_open")],  # States por último
+    Output("collapse-gastats", "is_open"),
+    [Input("show-gastats-button", "n_clicks")],
+    [State("collapse-gastats", "is_open")]
 )
-def toggle_gastats_collapse(n_clicks, selected_vrp, is_open):
+def toggle_gastats_collapse(n_clicks, is_open):
     if n_clicks:
-        with open(f'tests/data/v1/{selected_vrp.replace("cvrp_out", "ga_stats")}', 'r') as file:
-            ga_stats = json.load(file)
+        return not is_open
+    return is_open
+
+@app.callback(
+    Output("gastats-content", "children"),
+    [Input('vrp-selector', 'value')]
+)
+def update_gastats_content(selected_vrp):
+    with open(f'tests/data/v1/{selected_vrp.replace("cvrp_out", "ga_stats")}', 'r') as file:
+        ga_stats = json.load(file)
         
-        # Criar um layout de card único para todas as estatísticas
         ga_stats = GeneticAlgorithmStatsDto.model_validate(ga_stats)
         
-        # Criar gráficos
         fitness_graph = dcc.Graph(
             figure={
                 'data': [
@@ -113,13 +112,13 @@ def toggle_gastats_collapse(n_clicks, selected_vrp, is_open):
                     )
                 ],
                 'layout': go.Layout(
-                    title='Tempo de Processamento ao Longo das Gerações',
+                    title='Gerações x Fitnesss',
                     xaxis={'title': 'Gerações'},
-                    yaxis={'title': 'Tempo (s)'},
-                    plot_bgcolor='rgb(35, 35, 35)',  # Cor de fundo do gráfico
-                    paper_bgcolor='rgb(17, 17, 17)',  # Cor de fundo ao redor do gráfico
-                    font=dict(color='white'),  # Cor do texto
-                    title_font=dict(color='white', size=20),  # Estilo do título
+                    yaxis={'title': 'Fitness'},
+                    plot_bgcolor='rgb(35, 35, 35)',  
+                    paper_bgcolor='rgb(17, 17, 17)',  
+                    font=dict(color='white'), 
+                    title_font=dict(color='white', size=20),
                 )
             }
         )
@@ -131,17 +130,17 @@ def toggle_gastats_collapse(n_clicks, selected_vrp, is_open):
                         x=ga_stats.plot_generations[1:],
                         y=ga_stats.plot_times[1:],
                         mode='lines+markers',
-                        name='Tempo por Gerações'
+                        name='Gerações x Tempo'
                     )
                 ],
                 'layout': go.Layout(
                     title='Tempo de Processamento ao Longo das Gerações',
                     xaxis={'title': 'Gerações'},
                     yaxis={'title': 'Tempo (s)'},
-                    plot_bgcolor='rgb(35, 35, 35)',  # Cor de fundo do gráfico
-                    paper_bgcolor='rgb(17, 17, 17)',  # Cor de fundo ao redor do gráfico
-                    font=dict(color='white'),  # Cor do texto
-                    title_font=dict(color='white', size=20),  # Estilo do título
+                    plot_bgcolor='rgb(35, 35, 35)', 
+                    paper_bgcolor='rgb(17, 17, 17)',  
+                    font=dict(color='white'),  
+                    title_font=dict(color='white', size=20), 
                 )
             }
         )
@@ -154,7 +153,7 @@ def toggle_gastats_collapse(n_clicks, selected_vrp, is_open):
             html.H5(f"Tamanho População         : {ga_stats.population_size}", className="card-text"),
             html.H5(f"Taxa Mutação              : {ga_stats.mutation_rate*100}%", className="card-text"),
             html.H5(f"Tempo Para Distancias     : {ga_stats.graph_stats.seconds_to_calculate:.2f}s para {ga_stats.graph_stats.distances_matrix}", className="card-text"),
-        ],     style={'padding-bottom': '20px'})
+        ],     )
         
         final_layout = html.Div([
             stats_layout,
@@ -167,8 +166,7 @@ def toggle_gastats_collapse(n_clicks, selected_vrp, is_open):
             className="mb-3"
         )
 
-        return not is_open, card_layout
-    return is_open, ""
+    return card_layout
 
 
 
@@ -192,7 +190,7 @@ def update_map(selected_vrp):
         fig.add_trace(go.Scattermapbox(
             lat=lat,
             lon=lon,
-            mode='lines',  # Somente linhas, sem marcadores
+            mode='lines', 
             line=dict(
                 width=2, 
                 color=colors[i],
@@ -211,7 +209,6 @@ def update_map(selected_vrp):
                 text=["Pedido"],
             ))
 
-    # Configurar o layout do mapa
     fig.add_trace(go.Scattermapbox(
         lat=[lat[0]],
         lon=[lon[0]],
@@ -229,13 +226,12 @@ def update_map(selected_vrp):
             center=dict(lat=lat[0], lon=lon[0]) if lat and lon else dict(lat=0, lon=0),
         ),
         showlegend=False,
-        margin={"l": 0, "r": 0, "t": 0, "b": 0},  # Remove todas as margens
-        paper_bgcolor='rgba(0,0,0,0)',  # Fundo transparente
-        plot_bgcolor='rgba(0,0,0,0)',   # Fundo transparente
+        margin={"l": 0, "r": 0, "t": 0, "b": 0},  
+        paper_bgcolor='rgba(0,0,0,0)',  
+        plot_bgcolor='rgba(0,0,0,0)',  
     )
 
     return fig
 
-# Rodar o app
 if __name__ == '__main__':
-    app.run_server(debug=True)
+    app.run_server(debug=True, port=8000)
