@@ -27,7 +27,7 @@ def calculate_distances_routes(graph: Graph, array: np.ndarray, route_distances:
     
     for i in range(n_length):
         for j in range(n_length):
-            matrix_distance[i, j] = haversine.haversine(array[i],  array[j])  * 10000
+            matrix_distance[i, j] = haversine.haversine(array[i],  array[j])  * 1000000
             matrix_routes[i, j] = [(array[i][1], array[i][0])]
 
     # Encontrar os 10 pontos mais próximos para cada ponto

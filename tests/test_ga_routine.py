@@ -31,7 +31,7 @@ center = {
     }
 }
 
-n_points = 500
+n_points = 300
 with open('orders.json', 'r') as arquivo:
     orders = json.load(arquivo)
     

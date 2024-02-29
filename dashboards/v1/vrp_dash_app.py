@@ -43,11 +43,10 @@ app.layout = dbc.Container(
                     dcc.Dropdown(
                         id='vrp-selector',
                         options=[
-                            {'label': 'VRP 100', 'value': 'correios_n_100_cvrp_out.json'},
+                            {'label': 'VRP 150', 'value': 'correios_n_150_cvrp_out.json'},
                             {'label': 'VRP 300', 'value': 'correios_n_300_cvrp_out.json'},
-                            {'label': 'VRP 500', 'value': 'correios_n_500_cvrp_out.json'}
                         ],
-                        value='correios_n_100_cvrp_out.json',
+                        value='correios_n_150_cvrp_out.json',
                         style={'color': 'black'}
                     ),
                     width=8  
@@ -123,27 +122,27 @@ def update_gastats_content(selected_vrp):
             }
         )
 
-        time_graph = dcc.Graph(
-            figure={
-                'data': [
-                    go.Scatter(
-                        x=ga_stats.plot_generations[1:],
-                        y=ga_stats.plot_times[1:],
-                        mode='lines+markers',
-                        name='Gerações x Tempo'
-                    )
-                ],
-                'layout': go.Layout(
-                    title='Tempo de Processamento ao Longo das Gerações',
-                    xaxis={'title': 'Gerações'},
-                    yaxis={'title': 'Tempo (s)'},
-                    plot_bgcolor='rgb(35, 35, 35)', 
-                    paper_bgcolor='rgb(17, 17, 17)',  
-                    font=dict(color='white'),  
-                    title_font=dict(color='white', size=20), 
-                )
-            }
-        )
+        # time_graph = dcc.Graph(
+        #     figure={
+        #         'data': [
+        #             go.Scatter(
+        #                 x=ga_stats.plot_generations[1:],
+        #                 y=ga_stats.plot_times[1:],
+        #                 mode='lines+markers',
+        #                 name='Gerações x Tempo'
+        #             )
+        #         ],
+        #         'layout': go.Layout(
+        #             title='Tempo de Processamento ao Longo das Gerações',
+        #             xaxis={'title': 'Gerações'},
+        #             yaxis={'title': 'Tempo (s)'},
+        #             plot_bgcolor='rgb(35, 35, 35)', 
+        #             paper_bgcolor='rgb(17, 17, 17)',  
+        #             font=dict(color='white'),  
+        #             title_font=dict(color='white', size=20), 
+        #         )
+        #     }
+        # )
         
         stats_layout = html.Div([
             html.H4("Estatísticas do Algoritmo Genético", className="card-title text-center"),
@@ -158,7 +157,7 @@ def update_gastats_content(selected_vrp):
         final_layout = html.Div([
             stats_layout,
             fitness_graph,
-            time_graph
+            # time_graph
         ])
 
         card_layout = dbc.Card(
@@ -205,20 +204,20 @@ def update_map(selected_vrp):
                 mode='markers',
                 marker=go.scattermapbox.Marker(
                     size=7,
-                    color='blue',
+                    color='black',
                 ),
                 text=["Pedido"],
             ))
 
     fig.add_trace(go.Scattermapbox(
-        lat=[lat[0]],
-        lon=[lon[0]],
+        lat=[-22.582746],
+        lon=[-47.403675],
         mode='markers',
         marker=go.scattermapbox.Marker(
             size=15,
-            color='black'
+            color='yellow'
         ),
-        text=["Pedido"],
+        text=["Centro de Distribuição Correios"],
     ))
     fig.update_layout(
         mapbox_style="open-street-map",
