@@ -1,5 +1,7 @@
+import json
 import sys
 import os
+from typing import List
 
 
 sys.path.append(os.getcwd())
@@ -16,19 +18,44 @@ from dtos import AddressDto, OrderDto, RouteDto, VrpInDto, VrpOutDto, GeneticAlg
 from graphs import graph_limeira
 
 
-centers = [[-22.573213, -47.402682]] # Limeira
-cluster_std = [[0.01]]
-n_points = 40
-points, _ = make_blobs(n_samples=n_points, centers=centers, cluster_std=cluster_std, random_state=1)
-points[0] = centers[0]
+center = {
+    'nome': 'Correios - CENTRO DE ENTREGAS DE ENCOMENDAS',
+    'address': {
+        'logradouro': 'R. Dr. Custódio Moreira César',
+        'numero': '352',
+        'bairro': 'Vila Santa Lina',
+        'cidade': 'Limeira',
+        'estado': 'SP',
+        'latitude': -22.582746,
+        'longitude': -47.403675
+    }
+}
+
+n_points = 500
+with open('orders.json', 'r') as arquivo:
+    orders = json.load(arquivo)
+    
+points = [[center['address']['latitude'], center['address']['longitude']]]
+
+# Restante do código permanece o mesmo
+volumes = [0]
+for order in orders[:n_points]:
+    points.append([
+        order['address']['latitude'], order['address']['longitude']
+    ])
+    volumes.append(order['volume'])
+
+# Convertendo para arrays do NumPy
+points = np.array(points)
+volumes = np.array(volumes)
+
 t_distances = time.time()
 distance_matrix, routes_matrix = calculate_distances_routes(graph_limeira, points, True)
 t_distances = time.time() - t_distances
 t_seconds = 60*5
 pop_size = 100
 mutation_rate = 0.1
-volumes = np.ones(n_points)
-max_volume = 10
+max_volume = 100
 
 print(f'Matriz {n_points}x{n_points} rotas pelas vias em {t_distances:.3f}s')
 grath_stats = GraphStatsDto(
@@ -63,9 +90,9 @@ total_volume = 0
 for point in best_solution:
     if total_volume + volumes[point] > max_volume:
         if current_route != [0]:
-            current_route.append(0)  # Voltar ao depósito
+            current_route.append(0)  
             routes.append(np.array(current_route))
-            route_volumes.append(total_volume)  # Adiciona o volume da rota
+            route_volumes.append(total_volume)  
         current_route = [0, point]
         total_volume = volumes[point]
     else:
@@ -81,12 +108,12 @@ if current_route != [0]:
 colors = colormaps['viridis'](np.linspace(0, 1, len(routes)))
 
 
-mapa = folium.Map(location=centers[0], zoom_start=15)
+mapa = folium.Map(location=points[0], zoom_start=15)
 
 # Gerar cores do colormap
 colorlist = [mcolors.to_hex(color) for color in colors]
 # Adicionando pontos e rotas ao mapa
-orders_dtos = []
+orders_dtos: List[OrderDto] = []
 orders_id = 1
 street_points = []
 for index, route in enumerate(routes):
@@ -95,18 +122,19 @@ for index, route in enumerate(routes):
     
     for point_index in route:
         point = points[point_index]
+        order = orders[point_index]
         orders_dtos.append(
             OrderDto(
                 id=orders_id,
-                volume=1,
+                volume=float(order['volume']),
                 address=AddressDto(
-                    formatted_address='Rua, numero, bairro, cidade, UF - CEP', 
-                    street_name='Rua', 
-                    street_number='Numero', 
-                    city='Cidade', 
-                    postal_code='CEP', 
-                    neighborhood='Bairro', 
-                    state='UF', 
+                    formatted_address='', 
+                    street_name=str(order['address']['logradouro']), 
+                    street_number=str(order['address']['numero']), 
+                    city=str(order['address']['cidade']), 
+                    postal_code=str(order['address']['cep']), 
+                    neighborhood=str(order['address']['bairro']), 
+                    state='SP', 
                     complement='', 
                     latitude=point[0], 
                     longitude=point[1]
@@ -126,7 +154,7 @@ for index, route in enumerate(routes):
 
 # Adicionar um marcador grande para o centro de distribuição
 folium.Marker(
-    location=[centers[0][0], centers[0][1]], 
+    location=[points[0][0], points[0][1]], 
     popup="Centro de Distribuição", 
     color='black',
     icon=folium.Icon(color='green', icon='info-sign')
@@ -159,15 +187,19 @@ vrp_in = VrpInDto(
 route_dtos = []
 for index, route in enumerate(routes):
     orders_in_route = [orders_dtos[j] for j in route] 
-
+    points_route = [[orders_dtos[j].address.latitude, orders_dtos[j].address.longitude] for j in route]
+    link_google = 'https://www.google.com/maps/dir/'
     route_dtos.append(
         RouteDto(
             id=index,
             orders=orders_in_route,
             street_route=street_points[index],
-            total_volume=route_volumes[index]
+            total_volume=route_volumes[index],
+            points_route=points_route
         )
     )
+    
+
 
 # Criar a instância VrpOutDto
 vrp_out = VrpOutDto(
@@ -182,14 +214,14 @@ vrp_out_json = vrp_out.model_dump_json()
 ga_stats_json = ga_stats.model_dump_json()
 
 # Salvar em arquivos
-# with open(f'tests/data/v1/n_{n_points}_cvrp_in.json', 'w') as f:
-#     f.write(vrp_in_json)
+with open(f'tests/data/v1/correios_n_{n_points}_cvrp_in.json', 'w') as f:
+    f.write(vrp_in_json)
 
-# with open(f'tests/data/v1/n_{n_points}_cvrp_out.json', 'w') as f:
-#     f.write(vrp_out_json)
+with open(f'tests/data/v1/correios_n_{n_points}_cvrp_out.json', 'w') as f:
+    f.write(vrp_out_json)
     
-# with open(f'tests/data/v1/n_{n_points}_ga_stats.json', 'w') as f:
-#     f.write(ga_stats_json)
+with open(f'tests/data/v1/correios_n_{n_points}_ga_stats.json', 'w') as f:
+    f.write(ga_stats_json)
     
 # mapa.save(f'tests/data/v1/n_{n_points}_mapa_cvrp.html')
 mapa.save(f'mapa_cvrp.html')

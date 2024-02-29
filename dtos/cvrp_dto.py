@@ -24,6 +24,7 @@ class RouteDto(BaseModel):
     id: Optional[int] = None
     orders: List[OrderDto]
     street_route: List[Tuple[float, float]]
+    points_route: List[Tuple[float, float]]
     total_volume: float
     
 class VrpInDto(BaseModel):

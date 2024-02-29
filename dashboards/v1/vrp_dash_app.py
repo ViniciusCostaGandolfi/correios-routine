@@ -43,11 +43,11 @@ app.layout = dbc.Container(
                     dcc.Dropdown(
                         id='vrp-selector',
                         options=[
-                            {'label': 'VRP 30', 'value': 'n_30_cvrp_out.json'},
-                            {'label': 'VRP 50', 'value': 'n_50_cvrp_out.json'},
-                            {'label': 'VRP 100', 'value': 'n_100_cvrp_out.json'}
+                            {'label': 'VRP 100', 'value': 'correios_n_100_cvrp_out.json'},
+                            {'label': 'VRP 300', 'value': 'correios_n_300_cvrp_out.json'},
+                            {'label': 'VRP 500', 'value': 'correios_n_500_cvrp_out.json'}
                         ],
-                        value='n_30_cvrp_out.json',
+                        value='correios_n_100_cvrp_out.json',
                         style={'color': 'black'}
                     ),
                     width=8  
@@ -180,9 +180,10 @@ def update_map(selected_vrp):
 
     vrp_out_dto = VrpOutDto.model_validate(data)
     routes = vrp_out_dto.routes
-    colors = colormaps['viridis'](np.linspace(0, 1, len(routes)))
+    colors = colormaps['brg'](np.linspace(0, 1, len(routes)))
     colors = [mcolors.to_hex(color) for color in colors]
     fig = go.Figure()
+
 
     for i, route in enumerate(routes):
         lat = [coord[1] for coord in route.street_route]
@@ -214,8 +215,8 @@ def update_map(selected_vrp):
         lon=[lon[0]],
         mode='markers',
         marker=go.scattermapbox.Marker(
-            size=12,
-            color='green'
+            size=15,
+            color='black'
         ),
         text=["Pedido"],
     ))
@@ -234,4 +235,4 @@ def update_map(selected_vrp):
     return fig
 
 if __name__ == '__main__':
-    app.run_server(debug=True, port=8000)
+    app.run_server(debug=True, host='0.0.0.0', port=8000)

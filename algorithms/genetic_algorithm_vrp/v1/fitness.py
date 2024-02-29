@@ -70,5 +70,6 @@ def calculate_fitness(
 
         fitness_scores[i] = ind_fitness
         new_pop[i] = new_individual
+        
 
     return new_pop, fitness_scores

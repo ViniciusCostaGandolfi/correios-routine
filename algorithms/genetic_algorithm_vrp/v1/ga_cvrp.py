@@ -46,7 +46,7 @@ def genetic_algorithm_cvrp(
                 best_score = current_best_score
                 best_score_stagnation_count = 0
 
-            if best_score_stagnation_count >= 2:
+            if best_score_stagnation_count >= 3:
                 print("\n\nMelhor score estagnado, interrompendo o algoritmo.")
                 break
 

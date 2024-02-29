@@ -43,7 +43,7 @@ def perform_crossover(
     ):
     num_best = int(0.2 * older_population.shape[0])
     best_parents = older_population[:num_best]
-    rest_parents = older_population[num_best:]
+    # rest_parents = older_population[num_best:]
 
     new_population = np.zeros(older_population.shape, dtype=older_population.dtype)
 
